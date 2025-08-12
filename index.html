@@ -344,7 +344,8 @@
             async function callGeminiApi(prompt, model = 'gemini-2.5-flash-preview-05-20') {
                 let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
                 const payload = { contents: chatHistory };
-                const apiKey = "";
+                // IMPORTANT: You must replace the empty string below with your actual API key.
+                const apiKey = "AIzaSyCIWZtWQqhOQehhV9-T7OTj2ytJTL_Csak";
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
                 try {
@@ -417,7 +418,8 @@
                     },
                     model: "gemini-2.5-flash-preview-tts"
                 };
-                const apiKey = "";
+                // IMPORTANT: You must replace the empty string below with your actual API key.
+                const apiKey = "AIzaSyCIWZtWQqhOQehhV9-T7OTj2ytJTL_Csak";
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
 
                 try {
