@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A History of Religious Suppression: An Interactive Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals (Slate, Stone, Amber) -->
+    <!-- Application Structure Plan: The application is designed as a single-page exploratory dashboard. It starts with a high-level overview: a title, an introduction, and a primary navigation bar. The core interactive elements are presented first: a dynamic timeline and a comparative chart of suppression methods. This structure allows users to immediately grasp the scope and patterns of suppression. Below this, the content is organized thematically by the *methods* of suppression (e.g., "Physical Destruction," "Redaction & Censorship"). This is more intuitive than a chronological or religion-by-religion structure because it highlights the report's central thesis: that these methods are recurring patterns across different faiths. Each thematic section contains detailed case studies. This top-down, theme-based architecture facilitates both high-level understanding and deep-dive exploration, which is ideal for making a dense report digestible and engaging. The Gemini API is integrated to provide dynamic, generative content, adding a new layer of interactivity. -->
+    <!-- Visualization & Content Choices: 
+        - Timeline (Change): Report Info: Chronological events. Goal: Show the historical persistence of suppression. Viz: Interactive HTML/Tailwind timeline. Interaction: Clicking a date reveals detailed information in a modal-like view. The Gemini API is integrated to provide a "Text Expander" and "Text-to-Speech" option for each event. Justification: A timeline is the most direct way to visualize change and continuity over time. The interactive detail-on-demand prevents information overload and the API calls provide rich, on-demand content. Method: Custom JS with Tailwind CSS, Gemini LLM and TTS API.
+        - Bar Chart (Compare): Report Info: Different methods of suppression and their prevalence. Goal: Compare the frequency and impact of various methods. Viz: Horizontal Bar Chart. Interaction: Tooltips on hover provide brief descriptions. Justification: A bar chart is excellent for comparing categorical data, making it easy to see which methods are most common. Method: Chart.js.
+        - Thematic Content Sections (Organize/Inform): Report Info: Detailed case studies. Goal: Provide in-depth understanding of each suppression method. Viz: Styled text blocks with icons. Interaction: Users navigate via the main menu. Justification: Grouping content by theme (method) creates a logical flow and reinforces the report's analytical framework. Method: HTML/Tailwind.
+        - Gemini Features Section (Generate): Report Info: Thematic exploration. Goal: Allow the user to actively "reconstruct" lost histories. Viz: Text input and output area. Interaction: User types an event, clicks a button, and the Gemini API generates a new text. Justification: This feature directly empowers the user to engage with the report's core theme of "uncovering history" in a creative, generative way. Method: Custom JS with Tailwind CSS, Gemini LLM API.
+        - Icons (Inform): Unicode characters are used for visual cues (e.g., 🔥 for destruction, ✂️ for redaction), providing quick thematic recognition without using image or SVG files.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #1e293b; /* slate-800 */
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+        }
+        .nav-link.active {
+            color: #b45309; /* amber-700 */
+            border-bottom-color: #b45309;
+        }
+        .timeline-item {
+            position: relative;
+            padding-bottom: 2rem;
+            padding-left: 2.5rem;
+        }
+        .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+        .timeline-marker {
+            position: absolute;
+            left: 0;
+            top: 0.125rem;
+            height: 1rem;
+            width: 1rem;
+            background-color: #d6d3d1; /* stone-300 */
+            border-radius: 9999px;
+            transition: background-color 0.3s;
+        }
+        .timeline-item:hover .timeline-marker, .timeline-item.active .timeline-marker {
+            background-color: #b45309; /* amber-700 */
+        }
+        .timeline-line {
+            position: absolute;
+            left: 0.4375rem;
+            top: 0.125rem;
+            bottom: 0;
+            width: 2px;
+            background-color: #e7e5e4; /* stone-200 */
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px;
+            max-height: 50vh;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header & Navigation -->
+    <header class="bg-white/80 backdrop-blur-sm sticky top-0 z-40 shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-slate-900">History of Suppression</h1>
+                </div>
+                <nav class="hidden md:flex md:space-x-8">
+                    <a href="#overview" class="nav-link text-slate-600 hover:text-amber-700 border-b-2 border-transparent pb-1">Overview</a>
+                    <a href="#methods" class="nav-link text-slate-600 hover:text-amber-700 border-b-2 border-transparent pb-1">Methods</a>
+                    <a href="#case-studies" class="nav-link text-slate-600 hover:text-amber-700 border-b-2 border-transparent pb-1">Case Studies</a>
+                    <a href="#reconstruction" class="nav-link text-slate-600 hover:text-amber-700 border-b-2 border-transparent pb-1">Reconstruction</a>
+                    <a href="#gemini-features" class="nav-link text-slate-600 hover:text-amber-700 border-b-2 border-transparent pb-1">Gemini Tools</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+
+        <!-- Introduction -->
+        <section id="introduction" class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mb-4">Uncovering Suppressed Histories</h2>
+            <p class="max-w-3xl mx-auto text-lg text-slate-600">
+                This interactive report explores the systematic suppression of information by religious leaders throughout history. Discover the patterns, motivations, and methods used to control narratives and erase alternative histories, from ancient text burnings to modern-day cover-ups.
+            </p>
+        </section>
+
+        <!-- Overview Section: Timeline and Chart -->
+        <section id="overview" class="mb-20">
+            <div class="text-center mb-12">
+                <h3 class="text-2xl font-bold text-slate-800">An Enduring Pattern</h3>
+                <p class="mt-2 text-md text-slate-500 max-w-2xl mx-auto">The suppression of information is not an isolated phenomenon but a persistent strategy across millennia. The timeline below highlights key events, while the chart categorizes the primary methods employed. Interact with the elements to explore the data.</p>
+            </div>
+            <div class="grid md:grid-cols-5 gap-8 lg:gap-12">
+                <!-- Interactive Timeline -->
+                <div class="md:col-span-2">
+                    <h4 class="font-semibold text-lg text-slate-700 mb-4">Timeline of Key Events</h4>
+                    <div id="timeline-container" class="relative">
+                        <!-- Timeline items will be injected here by JS -->
+                    </div>
+                </div>
+                <!-- Timeline Detail View -->
+                <div class="md:col-span-3 bg-white p-6 rounded-lg shadow-md self-start sticky top-24">
+                     <div id="timeline-detail">
+                        <h4 class="font-bold text-xl text-slate-800 mb-2">Select an Event</h4>
+                        <p class="text-slate-500">Click on a date in the timeline to see detailed information about the event and its impact.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Methods Section: Chart -->
+        <section id="methods" class="mb-20">
+             <div class="text-center mb-12">
+                <h3 class="text-2xl font-bold text-slate-800">A Comparative Look at Suppression Methods</h3>
+                <p class="mt-2 text-md text-slate-500 max-w-2xl mx-auto">Religious authorities have used a variety of tactics to control information. This chart provides a comparative overview of the primary methods discussed in the report, illustrating the different strategies used to enforce doctrinal purity and maintain power.</p>
+            </div>
+            <div class="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
+                <div class="chart-container">
+                    <canvas id="methodsChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Case Studies Section -->
+        <section id="case-studies" class="mb-20">
+            <div class="text-center mb-12">
+                <h3 class="text-2xl font-bold text-slate-800">In-Depth Case Studies</h3>
+                <p class="mt-2 text-md text-slate-500 max-w-2xl mx-auto">Explore specific instances of suppression across different traditions. These case studies reveal the real-world impact of erasing histories, silencing dissent, and controlling narratives.</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Card 1: Physical Destruction -->
+                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow duration-300">
+                    <div class="flex items-center mb-4">
+                        <span class="text-3xl mr-4">🔥</span>
+                        <h4 class="font-semibold text-lg text-slate-800">Physical Destruction</h4>
+                    </div>
+                    <p class="text-slate-600 mb-4">The most direct form of suppression: eradicating texts, idols, and monuments. This method aims to permanently remove the physical record of a belief system.</p>
+                    <ul class="list-disc list-inside text-slate-500 space-y-1">
+                        <li>Burning of Mayan codices (1562)</li>
+                        <li>Destruction of Talmudic manuscripts (1240)</li>
+                        <li>Erasure of pre-Islamic idols in Mecca (630)</li>
+                    </ul>
+                </div>
+                <!-- Card 2: Redaction & Censorship -->
+                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow duration-300">
+                    <div class="flex items-center mb-4">
+                        <span class="text-3xl mr-4">✂️</span>
+                        <h4 class="font-semibold text-lg text-slate-800">Redaction & Censorship</h4>
+                    </div>
+                    <p class="text-slate-600 mb-4">Altering existing texts to remove or modify "objectionable" content. This subtle form of control reshapes narratives from within.</p>
+                     <ul class="list-disc list-inside text-slate-500 space-y-1">
+                        <li>Papal expurgation of Hebrew texts (1596)</li>
+                        <li>Copyist alterations in Responsa literature</li>
+                        <li>"Censored" editions after the printing press</li>
+                    </ul>
+                </div>
+                <!-- Card 3: Canonical Exclusion -->
+                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow duration-300">
+                    <div class="flex items-center mb-4">
+                        <span class="text-3xl mr-4">📚</span>
+                        <h4 class="font-semibold text-lg text-slate-800">Canonical Exclusion</h4>
+                    </div>
+                    <p class="text-slate-600 mb-4">Deliberately omitting texts from authoritative religious collections, effectively marginalizing alternative theological perspectives and histories.</p>
+                     <ul class="list-disc list-inside text-slate-500 space-y-1">
+                        <li>Exclusion of Enoch & Jubilees from Hebrew canon</li>
+                        <li>Condemnation of Gnostic gospels</li>
+                        <li>Formation of the Masoretic Text</li>
+                    </ul>
+                </div>
+                <!-- Card 4: Institutional Cover-ups -->
+                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow duration-300">
+                    <div class="flex items-center mb-4">
+                        <span class="text-3xl mr-4">🛡️</span>
+                        <h4 class="font-semibold text-lg text-slate-800">Institutional Cover-ups</h4>
+                    </div>
+                    <p class="text-slate-600 mb-4">Handling scandals internally to protect institutional reputation, often at the expense of transparency, justice, and the historical record.</p>
+                     <ul class="list-disc list-inside text-slate-500 space-y-1">
+                        <li>Church silence during the Holocaust</li>
+                        <li>Australian Royal Commission on abuse (2013)</li>
+                        <li>Modern self-censorship of financial misdeeds</li>
+                    </ul>
+                </div>
+                <!-- Card 5: Persecution of Adherents -->
+                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow duration-300">
+                    <div class="flex items-center mb-4">
+                        <span class="text-3xl mr-4">⚖️</span>
+                        <h4 class="font-semibold text-lg text-slate-800">Persecution of Adherents</h4>
+                    </div>
+                    <p class="text-slate-600 mb-4">Targeting individuals and groups deemed heretical through excommunication, imprisonment, torture, and execution to eliminate dissent.</p>
+                     <ul class="list-disc list-inside text-slate-500 space-y-1">
+                        <li>The Spanish & Roman Inquisitions</li>
+                        <li>Suppression of Karaism by Rabbanites</li>
+                        <li>Colonial suppression of Indigenous religions</li>
+                    </ul>
+                </div>
+                <!-- Card 6: Erasure of Competing Religions -->
+                <div class="bg-white rounded-lg shadow-md p-6 hover:shadow-xl transition-shadow duration-300">
+                    <div class="flex items-center mb-4">
+                        <span class="text-3xl mr-4">🏛️</span>
+                        <h4 class="font-semibold text-lg text-slate-800">Erasure of Competitors</h4>
+                    </div>
+                    <p class="text-slate-600 mb-4">Systematically undermining and eliminating rival belief systems to establish doctrinal and political dominance.</p>
+                     <ul class="list-disc list-inside text-slate-500 space-y-1">
+                        <li>Akhenaten's Atenism erased by successors</li>
+                        <li>Dismissal of mystery religions as "demonic copies"</li>
+                        <li>Destruction of Zoroastrian fire temples</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reconstruction Section -->
+        <section id="reconstruction" class="bg-white rounded-lg shadow-md p-8 md:p-12">
+            <div class="text-center">
+                <h3 class="text-2xl font-bold text-slate-800">Rebuilding the Past</h3>
+                <p class="mt-2 text-md text-slate-500 max-w-2xl mx-auto">Despite systematic erasure, scholars use powerful methods to recover lost histories. These techniques are essential for building a more complete and accurate understanding of our collective past.</p>
+            </div>
+            <div class="mt-10 grid md:grid-cols-3 gap-8 text-center">
+                <div>
+                    <div class="flex items-center justify-center h-12 w-12 rounded-md bg-amber-100 text-amber-700 mx-auto mb-4">
+                        <span class="text-2xl">📜</span>
+                    </div>
+                    <h4 class="font-semibold text-slate-800">Textual Analysis</h4>
+                    <p class="mt-1 text-slate-600">Comparing variant manuscripts and using computational tools to identify redactions and reconstruct original texts.</p>
+                </div>
+                <div>
+                    <div class="flex items-center justify-center h-12 w-12 rounded-md bg-amber-100 text-amber-700 mx-auto mb-4">
+                        <span class="text-2xl">💻</span>
+                    </div>
+                    <h4 class="font-semibold text-slate-800">Digital Humanities</h4>
+                    <p class="mt-1 text-slate-600">Using AI, advanced imaging, and large-scale digitization (like the Cairo Geniza) to uncover hidden details and expand access.</p>
+                </div>
+                <div>
+                    <div class="flex items-center justify-center h-12 w-12 rounded-md bg-amber-100 text-amber-700 mx-auto mb-4">
+                        <span class="text-2xl">🎤</span>
+                    </div>
+                    <h4 class="font-semibold text-slate-800">Oral History</h4>
+                    <p class="mt-1 text-slate-600">Recording and studying the testimonies of marginalized communities to preserve stories excluded from written records.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gemini API Features Section -->
+        <section id="gemini-features" class="bg-white rounded-lg shadow-md p-8 md:p-12 mb-20">
+            <div class="text-center">
+                <h3 class="text-2xl font-bold text-slate-800">✨ Gemini Research Tools</h3>
+                <p class="mt-2 text-md text-slate-500 max-w-2xl mx-auto">Use the power of generative AI to actively explore the report's themes. Generate hypothetical lost histories or expand on key concepts.</p>
+            </div>
+            <div class="mt-8">
+                <h4 class="font-semibold text-xl text-slate-800 mb-4">✨ Historical Reconstruction Engine</h4>
+                <p class="text-slate-600 mb-4">Imagine you are a historian. Enter an event of suppression below, and the AI will generate a compelling paragraph about what knowledge might have been lost because of it. For example, try "burning of the library of Alexandria."</p>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <input type="text" id="reconstruct-input" placeholder="e.g., Destruction of pre-Islamic idols" class="flex-grow p-3 rounded-lg border border-stone-300 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                    <button id="reconstruct-button" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors duration-300">
+                        ✨ Reconstruct
+                    </button>
+                </div>
+                <div id="reconstruct-output" class="mt-6 p-4 bg-stone-100 rounded-lg text-slate-700 min-h-[80px]">
+                    <p class="italic text-slate-400">Your reconstructed history will appear here.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-slate-800 text-white mt-16">
+        <div class="container mx-auto py-6 px-4 sm:px-6 lg:px-8 text-center text-slate-400">
+            <p>Interactive Report created based on "Suppressed History by Religious Leaders: An Expanded Report."</p>
+            <p class="text-sm mt-1">This visualization is for educational purposes.</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- DATA ---
+            const timelineData = [
+                { year: "2020", title: "Vatican Opens Pius XII Archives", description: "The Vatican opens the archives of Pope Pius XII, revealing new, complex information about the Catholic Church’s actions and knowledge during World War II and the Holocaust." },
+                { year: "2013", title: "Australian Royal Commission", description: "The Australian Royal Commission begins investigating institutional responses to child sexual abuse, exposing widespread cover-ups within religious organizations." },
+                { year: "2006", title: "Book of Mormon Revision", description: "The Mormon Church revises the introduction to the Book of Mormon, removing direct claims that Lamanites are the 'principal ancestors' of American Indians to address conflicting DNA evidence." },
+                { year: "1955", title: "Southern Baptist Declassifications", description: "Southern Baptist archives declassify documents revealing earlier theological justifications for slavery, forcing a confrontation with the denomination's past." },
+                { year: "1947", title: "Dead Sea Scrolls Found", description: "The discovery of the Dead Sea Scrolls near Qumran reveals a trove of non-canonical Jewish writings, offering a window into the diversity of Second Temple Judaism." },
+                { year: "1945", title: "Nag Hammadi Library Discovered", description: "A collection of Gnostic texts, including the Gospel of Thomas, is discovered in Nag Hammadi, Egypt, revealing theological diversity in early Christianity that was suppressed." },
+                { year: "1939-45", title: "Church Silence on Holocaust", description: "The Catholic Church's public silence on the Holocaust during WWII is later scrutinized, alongside its post-war involvement in 'ratlines' that helped Nazi officials escape." },
+                { year: "1596", title: "Papal Bull Mandates Expurgation", description: "A papal bull from Clement VIII mandates the systematic expurgation of Hebrew texts, leading to censored editions of the Talmud and other works." },
+                { year: "1562", title: "Burning of Mayan Codices", description: "Spanish friar Diego de Landa burns a vast collection of Mayan codices, believing them to be 'superstitions.' The act destroys centuries of Indigenous history and knowledge." },
+                { year: "1240", title: "Paris Disputation & Talmud Burning", description: "The Paris Disputation leads to the public condemnation and burning of thousands of Talmudic manuscripts, a catastrophic loss for medieval Jewish scholarship." },
+                { year: "c. 750 CE", title: "Rise of Karaism", description: "The rise of Karaite Judaism, which rejected the Oral Law, triggers centuries of polemics and suppression by Rabbanite authorities who sought to maintain their hegemony." },
+                { year: "630 CE", title: "Destruction of Pre-Islamic Idols", description: "After the conquest of Mecca, pre-Islamic idols and texts are destroyed, erasing much of the region's cultural and religious history from the 'Jahiliyyah' (era of ignorance)." },
+                { year: "c. 150 CE", title: "Dismissal of Mystery Religions", description: "Early Christian apologist Justin Martyr dismisses competing mystery religions as 'demonic copies' of Christian doctrines, a rhetorical strategy to delegitimize rivals." },
+                { year: "c. 300 BCE", title: "Formation of Hebrew Canon", description: "The Hebrew canon is gradually formed, a process which leads to the exclusion of influential texts like the Book of Enoch and Jubilees, shaping future Jewish theology." },
+                { year: "c. 1340 BCE", title: "Erasure of Atenism", description: "The monotheistic reforms of Pharaoh Akhenaten (Atenism) are systematically erased by his successors, who destroy his monuments and omit his name from king lists." },
+            ];
+
+            const methodsData = {
+                labels: ['Physical Destruction', 'Redaction & Censorship', 'Institutional Cover-ups', 'Canonical Exclusion', 'Persecution of Adherents', 'Erasure of Competitors'],
+                datasets: [{
+                    label: 'Impact/Prevalence Score',
+                    data: [90, 75, 80, 85, 95, 70],
+                    backgroundColor: [
+                        'rgba(217, 119, 6, 0.7)', // amber-600
+                        'rgba(234, 179, 8, 0.7)', // yellow-500
+                        'rgba(163, 163, 163, 0.7)', // stone-400
+                        'rgba(120, 113, 108, 0.7)', // stone-500
+                        'rgba(220, 38, 38, 0.7)', // red-600
+                        'rgba(100, 116, 139, 0.7)', // slate-500
+                    ],
+                    borderColor: [
+                        'rgba(217, 119, 6, 1)',
+                        'rgba(234, 179, 8, 1)',
+                        'rgba(163, 163, 163, 1)',
+                        'rgba(120, 113, 108, 1)',
+                        'rgba(220, 38, 38, 1)',
+                        'rgba(100, 116, 139, 1)',
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            // --- LLM API CALLER ---
+            async function callGeminiApi(prompt, model = 'gemini-2.5-flash-preview-05-20') {
+                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                const payload = { contents: chatHistory };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts.length > 0) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        return 'Sorry, I couldn\'t generate a response. Please try again.';
+                    }
+                } catch (error) {
+                    console.error('API call failed:', error);
+                    return 'An error occurred while connecting to the API.';
+                }
+            }
+
+            // --- TTS API CALLER ---
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const pcmToWav = (pcmData, sampleRate) => {
+                const pcm16 = new Int16Array(pcmData);
+                const buffer = new ArrayBuffer(44 + pcm16.length * 2);
+                const view = new DataView(buffer);
+                const writeString = (view, offset, string) => {
+                    for (let i = 0; i < string.length; i++) {
+                        view.setUint8(offset + i, string.charCodeAt(i));
+                    }
+                };
+                writeString(view, 0, 'RIFF');
+                view.setUint32(4, 36 + pcm16.length * 2, true);
+                writeString(view, 8, 'WAVE');
+                writeString(view, 12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true);
+                view.setUint16(22, 1, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * 2, true);
+                view.setUint16(32, 2, true);
+                view.setUint16(34, 16, true);
+                writeString(view, 36, 'data');
+                view.setUint32(40, pcm16.length * 2, true);
+                let offset = 44;
+                for (let i = 0; i < pcm16.length; i++) {
+                    view.setInt16(offset, pcm16[i], true);
+                    offset += 2;
+                }
+                return new Blob([view], { type: 'audio/wav' });
+            };
+            const base64ToArrayBuffer = (base64) => {
+                const binaryString = atob(base64);
+                const len = binaryString.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                return bytes.buffer;
+            };
+
+            async function callTtsApi(text) {
+                const payload = {
+                    contents: [{ parts: [{ text: text }] }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } }
+                        }
+                    },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    const audioData = result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                    const mimeType = result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.mimeType;
+
+                    if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                        const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
+                        const pcmData = base64ToArrayBuffer(audioData);
+                        const wavBlob = pcmToWav(pcmData, sampleRate);
+                        const audioUrl = URL.createObjectURL(wavBlob);
+                        const audio = new Audio(audioUrl);
+                        audio.play();
+                    } else {
+                        console.error('Invalid TTS API response structure.');
+                    }
+                } catch (error) {
+                    console.error('TTS API call failed:', error);
+                }
+            }
+            
+            // --- TIMELINE INTERACTIVITY ---
+            const timelineContainer = document.getElementById('timeline-container');
+            const timelineDetail = document.getElementById('timeline-detail');
+            let timelineHTML = '<div class="timeline-line"></div>';
+
+            timelineData.forEach((item, index) => {
+                timelineHTML += `
+                    <div class="timeline-item cursor-pointer" data-index="${index}">
+                        <div class="timeline-marker"></div>
+                        <p class="font-semibold text-slate-800">${item.year}</p>
+                        <p class="text-sm text-slate-500">${item.title}</p>
+                    </div>
+                `;
+            });
+            timelineContainer.innerHTML = timelineHTML;
+
+            const timelineItems = document.querySelectorAll('.timeline-item');
+            timelineItems.forEach(item => {
+                item.addEventListener('click', async () => {
+                    const index = item.getAttribute('data-index');
+                    const data = timelineData[index];
+
+                    timelineItems.forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+
+                    timelineDetail.innerHTML = `
+                        <h4 class="font-bold text-xl text-amber-700 mb-2">${data.year}: ${data.title}</h4>
+                        <p id="event-description" class="text-slate-600 mb-4">${data.description}</p>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                           <button id="expand-button" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-300 flex items-center justify-center">
+                              <span class="mr-2">✨</span> Expand on this Event
+                           </button>
+                           <button id="tts-button" class="bg-stone-500 hover:bg-stone-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors duration-300 flex items-center justify-center">
+                              <span class="mr-2">▶️</span> Listen
+                           </button>
+                        </div>
+                        <div id="expanded-text" class="mt-4 p-4 bg-stone-100 rounded-lg text-slate-700 hidden">
+                           <p class="italic text-slate-400">Expanded details will appear here.</p>
+                        </div>
+                    `;
+
+                    document.getElementById('expand-button').addEventListener('click', async () => {
+                       const expandedTextDiv = document.getElementById('expanded-text');
+                       const expandButton = document.getElementById('expand-button');
+                       expandButton.disabled = true;
+                       expandedTextDiv.classList.remove('hidden');
+                       expandedTextDiv.innerHTML = `<p class="italic text-slate-400">Generating details...</p>`;
+                       
+                       const prompt = `Provide a more detailed, 200-word explanation of the historical event: ${data.title} (${data.year}) in the context of suppressed religious histories.`;
+                       const generatedText = await callGeminiApi(prompt);
+                       
+                       expandedTextDiv.innerHTML = `<p>${generatedText}</p>`;
+                       expandButton.disabled = false;
+                    });
+                    
+                    document.getElementById('tts-button').addEventListener('click', () => {
+                        const textToSpeak = document.getElementById('event-description').textContent;
+                        callTtsApi(textToSpeak);
+                    });
+                });
+            });
+            
+            // Set initial view to the first item
+            if (timelineItems.length > 0) {
+                timelineItems[0].click();
+            }
+
+            // --- CHART.JS IMPLEMENTATION ---
+            const ctx = document.getElementById('methodsChart').getContext('2d');
+            const methodsChart = new Chart(ctx, {
+                type: 'bar',
+                data: methodsData,
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: '#1e293b', // slate-800
+                            titleFont: { size: 14, weight: 'bold' },
+                            bodyFont: { size: 12 },
+                            padding: 10,
+                            cornerRadius: 4,
+                            displayColors: false,
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: {
+                                color: '#e2e8f0' // slate-200
+                            },
+                            ticks: {
+                                color: '#475569' // slate-600
+                            }
+                        },
+                        y: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#334155', // slate-700
+                                font: {
+                                    weight: '600'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // --- GEMINI RECONSTRUCTION TOOL ---
+            const reconstructButton = document.getElementById('reconstruct-button');
+            const reconstructInput = document.getElementById('reconstruct-input');
+            const reconstructOutput = document.getElementById('reconstruct-output');
+            
+            reconstructButton.addEventListener('click', async () => {
+                const event = reconstructInput.value.trim();
+                if (!event) {
+                    reconstructOutput.innerHTML = `<p class="text-red-500">Please enter an event to reconstruct.</p>`;
+                    return;
+                }
+                
+                reconstructButton.disabled = true;
+                reconstructOutput.innerHTML = `<p class="italic text-slate-400">Reconstructing lost history...</p>`;
+
+                const prompt = `Imagine you are a historian. The following historical event of suppression occurred: "${event}". What kind of specific information, texts, or beliefs might have been lost due to this event? Generate a compelling, detailed paragraph that hypothesizes about this lost knowledge.`;
+                const generatedText = await callGeminiApi(prompt);
+                
+                reconstructOutput.innerHTML = `<p>${generatedText}</p>`;
+                reconstructButton.disabled = false;
+            });
+
+            // --- SMOOTH SCROLL & NAVIGATION HIGHLIGHTING ---
+            const navLinks = document.querySelectorAll('a[href^="#"]');
+            const sections = document.querySelectorAll('section');
+
+            navLinks.forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    document.querySelector(this.getAttribute('href')).scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                });
+            });
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+                        const id = entry.target.getAttribute('id');
+                        let targetLink;
+                        if (id === 'introduction' || id === 'overview') {
+                            targetLink = document.querySelector('a[href="#overview"]');
+                        } else {
+                            targetLink = document.querySelector(`a[href="#${id}"]`);
+                        }
+                        if (targetLink) {
+                           targetLink.classList.add('active');
+                        }
+                    }
+                });
+            }, { rootMargin: "-50% 0px -50% 0px" });
+
+            sections.forEach(section => observer.observe(section));
+            document.querySelector('.nav-link[href="#overview"]').classList.add('active');
+        });
+    </script>
+</body>
+</html>
